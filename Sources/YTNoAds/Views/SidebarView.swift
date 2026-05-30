@@ -18,9 +18,25 @@ struct SidebarView: View {
 
                 Label("\(appModel.jobs.count) downloads", systemImage: "tray")
                     .foregroundStyle(.secondary)
+
+                Label(remoteStatusTitle, systemImage: appModel.remoteServerStatus.isEnabled ? "wifi" : "wifi.slash")
+                    .foregroundStyle(appModel.remoteServerStatus.isEnabled ? Color.green : Color.secondary)
             }
         }
         .listStyle(.sidebar)
         .navigationTitle("YT No Ads")
+    }
+
+    private var remoteStatusTitle: String {
+        if appModel.remoteServerStatus.isStarting {
+            return "Remote starting"
+        }
+
+        if appModel.remoteServerStatus.isEnabled {
+            let count = appModel.remoteServerStatus.connectedClients
+            return count == 1 ? "1 remote" : "\(count) remotes"
+        }
+
+        return "Remote off"
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-enum DownloadQuality: String, CaseIterable, Identifiable {
+enum DownloadQuality: String, CaseIterable, Identifiable, Codable {
     case fastStart
     case hd720
     case best

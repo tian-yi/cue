@@ -2,7 +2,6 @@ import SwiftUI
 
 struct VideoDetailView: View {
     @EnvironmentObject private var appModel: AppModel
-    @State private var isBuffering = false
 
     var body: some View {
         Group {
@@ -78,44 +77,11 @@ struct VideoDetailView: View {
     @ViewBuilder
     private func playerArea(for video: VideoSummary) -> some View {
         if let playback = appModel.currentPlayback, playback.video.id == video.id {
-            ZStack {
-                PlayerView(fileURL: playback.fileURL, isBuffering: $isBuffering)
-                    .frame(minHeight: 360)
-                    .background(.black)
-
-                if isBuffering {
-                    BufferingOverlay()
-                }
-
-                VStack {
-                    HStack {
-                        playbackBadge(playback)
-                        Spacer()
-                        if case .preview = playback.sourceKind {
-                            Text("Best download continues in background")
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(.black.opacity(0.58), in: Capsule())
-                        }
-                        Spacer()
-                        Button {
-                            appModel.openFullscreen(playback)
-                        } label: {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .frame(width: 28, height: 28)
-                        }
-                        .buttonStyle(.borderless)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
-                        .help("Fullscreen")
-                    }
-                    Spacer()
-                }
-                .padding(12)
-            }
-            .onChange(of: playback.fileURL) { _, _ in
-                isBuffering = true
+            PlayerSurfaceView(
+                playback: playback,
+                controller: appModel.playbackController
+            ) {
+                appModel.openFullscreen(playback)
             }
         } else if let job = appModel.jobs.first(where: { $0.video.id == video.id }), job.isActive {
             VStack(spacing: 18) {
@@ -143,25 +109,6 @@ struct VideoDetailView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 360)
             .background(.quaternary)
-        }
-    }
-
-    private func playbackBadge(_ playback: PlaybackItem) -> some View {
-        Label(playback.sourceKind.title, systemImage: playback.sourceKind.systemImage)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(badgeColor(for: playback.sourceKind), in: Capsule())
-            .help(playback.sourceKind.detail)
-    }
-
-    private func badgeColor(for sourceKind: PlaybackSourceKind) -> Color {
-        switch sourceKind {
-        case .preview:
-            return .orange.opacity(0.86)
-        case .final:
-            return .green.opacity(0.80)
         }
     }
 
@@ -235,5 +182,67 @@ struct VideoDetailView: View {
         }
 
         return "arrow.down.circle"
+    }
+}
+
+private struct PlayerSurfaceView: View {
+    let playback: PlaybackItem
+    @ObservedObject var controller: PlaybackController
+    let openFullscreen: () -> Void
+
+    var body: some View {
+        ZStack {
+            PlayerView(playback: playback, controller: controller)
+                .frame(minHeight: 360)
+                .background(.black)
+
+            if controller.isBuffering {
+                BufferingOverlay()
+            }
+
+            VStack {
+                HStack {
+                    playbackBadge
+                    Spacer()
+                    if case .preview = playback.sourceKind {
+                        Text("Best download continues in background")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(.black.opacity(0.58), in: Capsule())
+                    }
+                    Spacer()
+                    Button(action: openFullscreen) {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.borderless)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+                    .help("Fullscreen")
+                }
+                Spacer()
+            }
+            .padding(12)
+        }
+    }
+
+    private var playbackBadge: some View {
+        Label(playback.sourceKind.title, systemImage: playback.sourceKind.systemImage)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(badgeColor(for: playback.sourceKind), in: Capsule())
+            .help(playback.sourceKind.detail)
+    }
+
+    private func badgeColor(for sourceKind: PlaybackSourceKind) -> Color {
+        switch sourceKind {
+        case .preview:
+            return .orange.opacity(0.86)
+        case .final:
+            return .green.opacity(0.80)
+        }
     }
 }

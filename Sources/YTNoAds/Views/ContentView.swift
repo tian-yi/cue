@@ -10,11 +10,6 @@ struct ContentView: View {
         } detail: {
             mainSurface
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                HelperBadge(status: appModel.helperStatus)
-            }
-        }
     }
 
     @ViewBuilder
@@ -41,6 +36,8 @@ struct ContentView: View {
             DownloadsView()
         case .library:
             LibraryView()
+        case .remote:
+            RemoteControlView()
         }
     }
 
@@ -52,18 +49,8 @@ struct ContentView: View {
         switch appModel.selectedSection {
         case .search, .library:
             return true
-        case .downloads:
+        case .downloads, .remote:
             return false
         }
-    }
-}
-
-private struct HelperBadge: View {
-    let status: HelperStatus
-
-    var body: some View {
-        Label(status.title, systemImage: status.isAvailable ? "checkmark.circle" : "exclamationmark.triangle")
-            .labelStyle(.titleAndIcon)
-            .foregroundStyle(status.isAvailable ? Color.secondary : Color.orange)
     }
 }

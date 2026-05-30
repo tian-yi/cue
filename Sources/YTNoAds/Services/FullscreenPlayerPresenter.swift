@@ -8,14 +8,12 @@ final class FullscreenPlayerPresenter: NSObject, NSWindowDelegate {
     private var bufferMonitor: Timer?
     private var bufferingOverlay: NSView?
 
-    func present(video: VideoSummary, fileURL: URL) {
+    var isPresented: Bool {
+        window != nil
+    }
+
+    func present(video: VideoSummary, player: AVPlayer) {
         close()
-
-        let item = AVPlayerItem(url: fileURL)
-        item.preferredForwardBufferDuration = 8
-
-        let player = AVPlayer(playerItem: item)
-        player.automaticallyWaitsToMinimizeStalling = true
 
         let playerView = AVPlayerView(frame: .zero)
         playerView.controlsStyle = .floating
@@ -63,13 +61,11 @@ final class FullscreenPlayerPresenter: NSObject, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
         window.toggleFullScreen(nil)
         startBufferMonitor()
-        player.play()
     }
 
     func close() {
         bufferMonitor?.invalidate()
         bufferMonitor = nil
-        player?.pause()
         player = nil
         bufferingOverlay = nil
         window?.delegate = nil
@@ -81,7 +77,6 @@ final class FullscreenPlayerPresenter: NSObject, NSWindowDelegate {
         Task { @MainActor in
             bufferMonitor?.invalidate()
             bufferMonitor = nil
-            player?.pause()
             player = nil
             bufferingOverlay = nil
             window = nil

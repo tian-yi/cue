@@ -4,6 +4,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     case search
     case downloads
     case library
+    case remote
 
     var id: String { rawValue }
 
@@ -15,6 +16,8 @@ enum AppSection: String, CaseIterable, Identifiable {
             return "Downloads"
         case .library:
             return "Library"
+        case .remote:
+            return "Remote"
         }
     }
 
@@ -26,7 +29,8 @@ enum AppSection: String, CaseIterable, Identifiable {
             return "arrow.down.circle"
         case .library:
             return "play.rectangle.on.rectangle"
+        case .remote:
+            return "iphone.radiowaves.left.and.right"
         }
     }
 }
-

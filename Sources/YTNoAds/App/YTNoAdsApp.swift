@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -10,6 +11,9 @@ struct YTNoAdsApp: App {
             ContentView()
                 .environmentObject(appModel)
                 .frame(minWidth: 1040, minHeight: 680)
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+                    appModel.disableRemoteControl()
+                }
         }
         .commands {
             CommandGroup(after: .newItem) {
@@ -22,6 +26,11 @@ struct YTNoAdsApp: App {
                     appModel.selectedSection = .downloads
                 }
                 .keyboardShortcut("d", modifiers: [.command, .shift])
+
+                Button("Show Remote") {
+                    appModel.selectedSection = .remote
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
             }
         }
 
@@ -32,4 +41,3 @@ struct YTNoAdsApp: App {
         }
     }
 }
-

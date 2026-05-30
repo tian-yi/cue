@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 
 @MainActor
@@ -7,11 +8,22 @@ final class AppModel: ObservableObject {
     @Published var searchText = ""
     @Published var results: [VideoSummary] = []
     @Published var selectedVideo: VideoSummary?
-    @Published var currentPlayback: PlaybackItem?
+    @Published var currentPlayback: PlaybackItem? {
+        didSet {
+            if let currentPlayback {
+                playbackController.load(currentPlayback)
+            } else {
+                playbackController.stop()
+                fullscreenPresenter.close()
+            }
+            publishRemoteState()
+        }
+    }
     @Published var jobs: [DownloadJob] = []
     @Published var isSearching = false
     @Published var statusMessage: String?
     @Published var helperStatus: HelperStatus = .checking
+    @Published var remoteServerStatus = RemoteServerStatus()
     @Published var videoLayoutMode: VideoLayoutMode {
         didSet {
             UserDefaults.standard.set(videoLayoutMode.rawValue, forKey: Self.videoLayoutModeKey)
@@ -30,11 +42,14 @@ final class AppModel: ObservableObject {
     }
 
     let cacheDirectory: URL
+    let playbackController = PlaybackController()
 
     private static let ytDlpPathKey = "ytDlpPath"
     private static let videoLayoutModeKey = "videoLayoutMode"
     private static let downloadQualityKey = "downloadQuality"
     private let fullscreenPresenter = FullscreenPlayerPresenter()
+    private var remoteServer: RemoteControlServer?
+    private var playbackStateCancellable: AnyCancellable?
 
     init() {
         self.ytDlpPath = UserDefaults.standard.string(forKey: Self.ytDlpPathKey) ?? ""
@@ -45,6 +60,7 @@ final class AppModel: ObservableObject {
             rawValue: UserDefaults.standard.string(forKey: Self.downloadQualityKey) ?? ""
         ) ?? .fastStart
         self.cacheDirectory = Self.defaultCacheDirectory()
+        observePlaybackForRemoteState()
         refreshHelperStatus()
     }
 
@@ -56,29 +72,49 @@ final class AppModel: ObservableObject {
         }
 
         Task {
-            isSearching = true
-            statusMessage = nil
-
             do {
-                let service = currentService()
-                let videos = try await service.search(query: query)
-                results = videos
-                selectedSection = .search
-                if videos.isEmpty {
-                    statusMessage = "No results."
-                }
+                _ = try await search(query: query)
             } catch {
                 statusMessage = error.localizedDescription
             }
+        }
+    }
 
+    @discardableResult
+    func search(query: String) async throws -> [VideoSummary] {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else {
+            statusMessage = "Enter a search term."
+            return []
+        }
+
+        isSearching = true
+        statusMessage = nil
+
+        defer {
             isSearching = false
         }
+
+        let service = currentService()
+        let videos = try await service.search(query: trimmedQuery)
+        searchText = trimmedQuery
+        results = videos
+        selectedSection = .search
+
+        if videos.isEmpty {
+            statusMessage = "No results."
+        }
+
+        return videos
     }
 
     func selectAndDownload(_ video: VideoSummary) {
         selectedVideo = video
         selectedSection = .search
-        currentPlayback = nil
+        if currentPlayback?.video.id != video.id {
+            currentPlayback = nil
+        }
+        publishRemoteState()
 
         if let existing = jobs.first(where: { $0.video.id == video.id }) {
             switch existing.status {
@@ -88,6 +124,7 @@ final class AppModel: ObservableObject {
                     fileURL: url,
                     sourceKind: .final(quality: existing.quality)
                 )
+                publishRemoteState()
                 return
             case .queued, .running:
                 return
@@ -107,6 +144,7 @@ final class AppModel: ObservableObject {
             completedAt: nil
         )
         jobs.insert(job, at: 0)
+        publishRemoteState()
         start(jobID: job.id)
     }
 
@@ -117,6 +155,7 @@ final class AppModel: ObservableObject {
 
         if currentPlayback?.video.id == job.video.id {
             currentPlayback = nil
+            publishRemoteState()
         }
 
         jobs[index].status = .queued
@@ -125,6 +164,7 @@ final class AppModel: ObservableObject {
         jobs[index].detail = "Queued"
         jobs[index].completedAt = nil
         start(jobID: job.id)
+        publishRemoteState()
     }
 
     func reveal(_ url: URL) {
@@ -136,10 +176,21 @@ final class AppModel: ObservableObject {
     }
 
     func openFullscreen(_ playback: PlaybackItem) {
-        fullscreenPresenter.present(video: playback.video, fileURL: playback.fileURL)
+        playbackController.load(playback, autoplay: playbackController.isPlaying)
+        fullscreenPresenter.present(video: playback.video, player: playbackController.player)
+    }
+
+    func toggleFullscreen() {
+        if fullscreenPresenter.isPresented {
+            fullscreenPresenter.close()
+        } else if let currentPlayback {
+            openFullscreen(currentPlayback)
+        }
     }
 
     func closePlayer() {
+        playbackController.stop()
+        fullscreenPresenter.close()
         currentPlayback = nil
         selectedVideo = nil
     }
@@ -199,7 +250,141 @@ final class AppModel: ObservableObject {
         jobs.removeAll { $0.id == job.id }
 
         if currentPlayback?.fileURL == url {
+            playbackController.stop()
             currentPlayback = nil
+            publishRemoteState()
+        }
+    }
+
+    func setRemoteServerStatus(_ status: RemoteServerStatus) {
+        remoteServerStatus = status
+    }
+
+    func enableRemoteControl() {
+        guard !remoteServerStatus.isEnabled, !remoteServerStatus.isStarting else {
+            return
+        }
+
+        remoteServerStatus.isStarting = true
+        remoteServerStatus.errorMessage = nil
+
+        Task {
+            do {
+                let server = RemoteControlServer(appModel: self)
+                let status = try await server.start(port: RemoteControlDefaults.port)
+                remoteServer = server
+                remoteServerStatus = status
+            } catch {
+                remoteServer = nil
+                remoteServerStatus = RemoteServerStatus(
+                    isEnabled: false,
+                    isStarting: false,
+                    port: RemoteControlDefaults.port,
+                    token: nil,
+                    localURLs: [],
+                    connectedClients: 0,
+                    errorMessage: error.localizedDescription
+                )
+            }
+        }
+    }
+
+    func disableRemoteControl() {
+        let server = remoteServer
+        remoteServer = nil
+        remoteServerStatus = RemoteServerStatus(port: RemoteControlDefaults.port)
+
+        Task {
+            await server?.stop()
+        }
+    }
+
+    func regenerateRemotePairingCode() {
+        let server = remoteServer
+        remoteServer = nil
+        remoteServerStatus = RemoteServerStatus(
+            isEnabled: false,
+            isStarting: true,
+            port: RemoteControlDefaults.port,
+            token: nil,
+            localURLs: [],
+            connectedClients: 0,
+            errorMessage: nil
+        )
+
+        Task {
+            await server?.stop()
+            remoteServerStatus = RemoteServerStatus(port: RemoteControlDefaults.port)
+            enableRemoteControl()
+        }
+    }
+
+    func remoteStateSnapshot() -> RemotePlaybackState {
+        guard let playback = currentPlayback else {
+            return .empty(
+                selectedQuality: downloadQuality,
+                volume: Double(playbackController.volume)
+            )
+        }
+
+        let job = jobs.first { $0.video.id == playback.video.id }
+        let playerDuration = playbackController.duration
+        let fallbackDuration = playback.video.durationSeconds.map(Double.init) ?? 0
+        let duration = playerDuration > 0 ? playerDuration : fallbackDuration
+
+        return RemotePlaybackState(
+            appName: "YT No Ads",
+            hasVideo: true,
+            title: playback.video.title,
+            channel: playback.video.channelTitle,
+            thumbnailURL: playback.video.thumbnailURL,
+            webpageURL: playback.video.webpageURL,
+            isPlaying: playbackController.isPlaying,
+            isBuffering: playbackController.isBuffering,
+            currentTime: playbackController.currentTime,
+            duration: duration,
+            volume: Double(playbackController.volume),
+            selectedQuality: downloadQuality,
+            sourceKind: RemotePlaybackSourceKind(playback.sourceKind),
+            downloadState: job.map(RemoteDownloadState.init),
+            availableQualities: DownloadQuality.allCases.map(RemoteQualityOption.init)
+        )
+    }
+
+    func handleRemoteCommand(_ command: RemoteControlCommand) -> RemotePlaybackState {
+        switch command.command {
+        case .play:
+            playbackController.play()
+        case .pause:
+            playbackController.pause()
+        case .togglePlayPause:
+            playbackController.togglePlayPause()
+        case .seekBy:
+            playbackController.seek(by: command.seconds ?? 0)
+        case .seekTo:
+            playbackController.seek(to: command.seconds ?? 0)
+        case .setVolume:
+            playbackController.setVolume(Float(command.volume ?? Double(playbackController.volume)))
+        case .setQuality:
+            if let quality = command.quality {
+                downloadQuality = quality
+            }
+        case .toggleFullscreen:
+            toggleFullscreen()
+        case .closePlayer:
+            closePlayer()
+        }
+
+        publishRemoteState()
+        return remoteStateSnapshot()
+    }
+
+    func publishRemoteState() {
+        if let remoteServer {
+            let state = remoteStateSnapshot()
+            Task {
+                await remoteServer.publish(state)
+            }
         }
     }
 
@@ -212,6 +397,7 @@ final class AppModel: ObservableObject {
             $0.status = .running
             $0.detail = "Starting yt-dlp (\(job.quality.title))"
         }
+        publishRemoteState()
 
         Task {
             let quality = job.quality
@@ -247,6 +433,7 @@ final class AppModel: ObservableObject {
                                 sourceKind: .final(quality: quality)
                             )
                         }
+                        self.publishRemoteState()
                     }
                 }
 
@@ -256,6 +443,7 @@ final class AppModel: ObservableObject {
                     $0.detail = "Ready"
                     $0.completedAt = Date()
                 }
+                publishRemoteState()
 
                 if selectedVideo?.id == job.video.id {
                     currentPlayback = PlaybackItem(
@@ -263,15 +451,19 @@ final class AppModel: ObservableObject {
                         fileURL: fileURL,
                         sourceKind: .final(quality: quality)
                     )
+                    publishRemoteState()
                 }
             } catch {
                 update(jobID: jobID) {
                     $0.status = .failed(error.localizedDescription)
                     $0.detail = "Failed"
                 }
+                publishRemoteState()
 
                 if currentPlayback?.video.id == job.video.id {
+                    playbackController.stop()
                     currentPlayback = nil
+                    publishRemoteState()
                 }
             }
         }
@@ -283,6 +475,14 @@ final class AppModel: ObservableObject {
         }
 
         mutate(&jobs[index])
+    }
+
+    private func observePlaybackForRemoteState() {
+        playbackStateCancellable = playbackController.objectWillChange.sink { [weak self] _ in
+            Task { @MainActor in
+                self?.publishRemoteState()
+            }
+        }
     }
 
     private func startPreviewStreamIfPossible(
@@ -315,6 +515,7 @@ final class AppModel: ObservableObject {
                     fileURL: streamURL,
                     sourceKind: .preview(targetQuality: quality)
                 )
+                publishRemoteState()
                 update(jobID: job.id) {
                     if quality == .best {
                         $0.detail = "Preview streaming, best download running"
@@ -322,10 +523,12 @@ final class AppModel: ObservableObject {
                         $0.detail = "Streaming, download running"
                     }
                 }
+                publishRemoteState()
             } catch {
                 update(jobID: job.id) {
                     $0.detail = "Resolving stream failed, downloading file"
                 }
+                publishRemoteState()
             }
         }
     }
