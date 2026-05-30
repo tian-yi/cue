@@ -333,7 +333,7 @@ final class AppModel: ObservableObject {
         let duration = playerDuration > 0 ? playerDuration : fallbackDuration
 
         return RemotePlaybackState(
-            appName: "YT No Ads",
+            appName: "Cue",
             hasVideo: true,
             title: playback.video.title,
             channel: playback.video.channelTitle,
@@ -543,8 +543,16 @@ final class AppModel: ObservableObject {
             in: .userDomainMask
         ).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
 
-        let directory = base.appendingPathComponent("YTNoAds", isDirectory: true)
-        try? FileManager.default.createDirectory(
+        let fileManager = FileManager.default
+        let directory = base.appendingPathComponent("Cue", isDirectory: true)
+        let legacyDirectory = base.appendingPathComponent("YTNoAds", isDirectory: true)
+
+        if !fileManager.fileExists(atPath: directory.path),
+           fileManager.fileExists(atPath: legacyDirectory.path) {
+            try? fileManager.moveItem(at: legacyDirectory, to: directory)
+        }
+
+        try? fileManager.createDirectory(
             at: directory,
             withIntermediateDirectories: true
         )

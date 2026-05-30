@@ -1,6 +1,6 @@
-# YT No Ads
+# Cue
 
-YT No Ads is a personal macOS SwiftUI app for searching YouTube through a user-installed `yt-dlp` helper, starting playback quickly, and keeping completed videos in a local cache.
+Cue is a personal macOS SwiftUI app for searching YouTube through a user-installed `yt-dlp` helper, starting playback quickly, and keeping completed videos in a local cache.
 
 The app is built as a native Swift package executable with a small app-bundle staging script. It is intended for private/local use with media you are allowed to access or download.
 
@@ -45,12 +45,12 @@ Build and launch the app bundle:
 ./script/build_and_run.sh
 ```
 
-The script runs `swift build`, stages `dist/YTNoAds.app`, and opens it as a native macOS app.
+The script runs `swift build`, stages `dist/Cue.app`, and opens it as a native macOS app.
 
 You can also run the executable directly during development:
 
 ```sh
-swift run YTNoAds
+swift run Cue
 ```
 
 ## Build Script Modes
@@ -88,7 +88,7 @@ When a result is selected, the app queues a `DownloadJob`, asks `yt-dlp` for a p
 The default cache directory is:
 
 ```text
-~/Library/Application Support/YTNoAds
+~/Library/Application Support/Cue
 ```
 
 You can reveal the cache location from Settings.
@@ -109,7 +109,7 @@ You can reveal the cache location from Settings.
 ## Project Layout
 
 ```text
-Sources/YTNoAds/
+Sources/Cue/
   App/          App entry point and delegate
   Models/       App sections, video summaries, downloads, playback, remote models
   Services/     yt-dlp integration, downloads, playback, fullscreen, remote control server
@@ -117,7 +117,7 @@ Sources/YTNoAds/
   Support/      Formatting and networking helpers
   Views/        SwiftUI screens and reusable controls
 Tests/
-  YTNoAdsTests/ Unit tests
+  CueTests/ Unit tests
 script/
   build_and_run.sh
 ```

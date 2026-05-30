@@ -7,7 +7,7 @@ extension RemoteControlServer {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-      <title>YT No Ads Remote</title>
+      <title>Cue Remote</title>
       <link rel="stylesheet" href="/app.css">
     </head>
     <body>
@@ -30,7 +30,7 @@ extension RemoteControlServer {
         </section>
 
         <section class="meta">
-          <p id="channel" class="channel">YT No Ads</p>
+          <p id="channel" class="channel">Cue</p>
           <h1 id="title">Waiting for video</h1>
         </section>
 
@@ -421,7 +421,7 @@ extension RemoteControlServer {
     function render(nextState) {
       state = nextState;
       els.status.textContent = statusText(nextState);
-      els.channel.textContent = nextState.channel || "YT No Ads";
+      els.channel.textContent = nextState.channel || "Cue";
       els.title.textContent = nextState.title || "Waiting for video";
       els.playPause.textContent = nextState.isPlaying ? "Ⅱ" : "▶";
       els.volume.value = String(nextState.volume ?? 0.8);

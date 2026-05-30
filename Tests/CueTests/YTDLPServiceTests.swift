@@ -1,5 +1,5 @@
 import XCTest
-@testable import YTNoAds
+@testable import Cue
 
 final class YTDLPServiceTests: XCTestCase {
     func testDecodeSearchResultsKeepsOnlyVideos() throws {
@@ -64,7 +64,7 @@ final class YTDLPServiceTests: XCTestCase {
 
     func testStreamURLResolverReturnsDirectMediaURL() async throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("YTNoAdsTests-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("CueTests-\(UUID().uuidString)", isDirectory: true)
         let fakeBinary = root.appendingPathComponent("yt-dlp")
 
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -110,7 +110,7 @@ final class YTDLPServiceTests: XCTestCase {
 
     func testDownloadManagerMovesCompletedHelperOutput() async throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("YTNoAdsTests-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("CueTests-\(UUID().uuidString)", isDirectory: true)
         let fakeBinary = root.appendingPathComponent("yt-dlp")
 
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -190,7 +190,7 @@ final class YTDLPServiceTests: XCTestCase {
 
     func testBestQualityReturnsFinalFile() async throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("YTNoAdsTests-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("CueTests-\(UUID().uuidString)", isDirectory: true)
         let fakeBinary = root.appendingPathComponent("yt-dlp")
 
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

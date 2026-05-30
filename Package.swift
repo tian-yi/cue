@@ -3,12 +3,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "YTNoAds",
+    name: "Cue",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "YTNoAds", targets: ["YTNoAds"])
+        .executable(name: "Cue", targets: ["Cue"])
     ],
     dependencies: [
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
@@ -16,17 +16,17 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "YTNoAds",
+            name: "Cue",
             dependencies: [
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket")
             ],
-            path: "Sources/YTNoAds"
+            path: "Sources/Cue"
         ),
         .testTarget(
-            name: "YTNoAdsTests",
-            dependencies: ["YTNoAds"],
-            path: "Tests/YTNoAdsTests"
+            name: "CueTests",
+            dependencies: ["Cue"],
+            path: "Tests/CueTests"
         )
     ]
 )

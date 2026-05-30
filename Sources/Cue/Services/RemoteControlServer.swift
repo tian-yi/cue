@@ -115,7 +115,7 @@ final class RemoteControlServer: @unchecked Sendable {
             await self.updateConnectedClientCount()
         }
 
-        var logger = Logger(label: "YTNoAds.RemoteControl")
+        var logger = Logger(label: "Cue.RemoteControl")
         logger.logLevel = .info
 
         let app = Application(
@@ -123,7 +123,7 @@ final class RemoteControlServer: @unchecked Sendable {
             server: .http1WebSocketUpgrade(webSocketRouter: wsRouter),
             configuration: .init(
                 address: .hostname("0.0.0.0", port: port),
-                serverName: "YTNoAdsRemote"
+                serverName: "CueRemote"
             ),
             logger: logger
         )

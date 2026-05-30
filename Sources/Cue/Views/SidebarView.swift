@@ -24,7 +24,7 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("YT No Ads")
+        .navigationTitle("Cue")
     }
 
     private var remoteStatusTitle: String {

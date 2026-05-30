@@ -2,12 +2,12 @@ import AppKit
 import SwiftUI
 
 @main
-struct YTNoAdsApp: App {
+struct CueApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appModel = AppModel()
 
     var body: some Scene {
-        WindowGroup("YT No Ads") {
+        WindowGroup("Cue") {
             ContentView()
                 .environmentObject(appModel)
                 .frame(minWidth: 1040, minHeight: 680)

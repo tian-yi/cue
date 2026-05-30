@@ -2,28 +2,32 @@
 set -euo pipefail
 
 MODE="${1:-run}"
-APP_NAME="YTNoAds"
-BUNDLE_ID="app.ytnoads.personal"
+APP_NAME="Cue"
+LEGACY_APP_NAME="YTNoAds"
+BUNDLE_ID="app.cue.personal"
 MIN_SYSTEM_VERSION="14.0"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
+LEGACY_APP_BUNDLE="$DIST_DIR/$LEGACY_APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
 APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
-APP_ICON_NAME="YTNoAds"
+APP_ICON_NAME="Cue"
 APP_ICON_FILE="$APP_ICON_NAME.icns"
 APP_ICON_SOURCE="$ROOT_DIR/Assets/AppIcons/$APP_ICON_FILE"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+pkill -x "$LEGACY_APP_NAME" >/dev/null 2>&1 || true
 
 swift build
 BUILD_BINARY="$(swift build --show-bin-path)/$APP_NAME"
 
 rm -rf "$APP_BUNDLE"
+rm -rf "$LEGACY_APP_BUNDLE"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES"
 cp "$BUILD_BINARY" "$APP_BINARY"
 cp "$APP_ICON_SOURCE" "$APP_RESOURCES/$APP_ICON_FILE"
@@ -49,7 +53,7 @@ cat >"$INFO_PLIST" <<PLIST
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
   <key>NSLocalNetworkUsageDescription</key>
-  <string>YT No Ads uses the local network to serve the optional phone remote while devices are on the same Wi-Fi.</string>
+  <string>Cue uses the local network to serve the optional phone remote while devices are on the same Wi-Fi.</string>
 </dict>
 </plist>
 PLIST

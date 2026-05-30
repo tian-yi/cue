@@ -1,5 +1,5 @@
 import XCTest
-@testable import YTNoAds
+@testable import Cue
 
 final class RemoteControlModelsTests: XCTestCase {
     func testRemoteControlCommandCodableRoundTripsPayloads() throws {
@@ -40,7 +40,7 @@ final class RemoteControlModelsTests: XCTestCase {
             volume: 0.4
         )
 
-        XCTAssertEqual(state.appName, "YT No Ads")
+        XCTAssertEqual(state.appName, "Cue")
         XCTAssertFalse(state.hasVideo)
         XCTAssertNil(state.title)
         XCTAssertNil(state.channel)

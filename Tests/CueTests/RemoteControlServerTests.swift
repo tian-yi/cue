@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import YTNoAds
+@testable import Cue
 
 @MainActor
 final class RemoteControlServerTests: XCTestCase {
@@ -14,7 +14,7 @@ final class RemoteControlServerTests: XCTestCase {
             let state = try await fetchState(port: port, token: status.token)
 
             XCTAssertFalse(state.hasVideo)
-            XCTAssertEqual(state.appName, "YT No Ads")
+            XCTAssertEqual(state.appName, "Cue")
             XCTAssertEqual(state.selectedQuality, appModel.downloadQuality)
 
             let rejectedStatus = try await httpStatusCode(URL(string: "http://127.0.0.1:\(port)/api/state")!)

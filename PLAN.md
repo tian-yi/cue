@@ -101,9 +101,9 @@ Target platform:
 Suggested module layout:
 
 ```text
-YTNoAds/
+Cue/
   App/
-    YTNoAdsApp.swift
+    CueApp.swift
   Models/
     VideoSummary.swift
     VideoDetails.swift

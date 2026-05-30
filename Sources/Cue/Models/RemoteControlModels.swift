@@ -72,7 +72,7 @@ struct RemotePlaybackState: Codable, Equatable {
         volume: Double
     ) -> RemotePlaybackState {
         RemotePlaybackState(
-            appName: "YT No Ads",
+            appName: "Cue",
             hasVideo: false,
             title: nil,
             channel: nil,
